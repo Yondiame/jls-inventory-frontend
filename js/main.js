@@ -2,7 +2,8 @@
 const Counter = {
   data() {
     return {
-      api: 'http://localhost:8000',
+      // api: 'http://localhost:8000', local
+      api: 'https://jls-invetory.herokuapp.com',
       counter: 0,
       products: [],
       pagination: [],
