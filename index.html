@@ -1,0 +1,248 @@
+<!doctype html>
+<html class="no-js" lang="">
+
+<head>
+  <meta charset="utf-8">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <meta property="og:title" content="">
+  <meta property="og:type" content="">
+  <meta property="og:url" content="">
+  <meta property="og:image" content="">
+
+  <link rel="manifest" href="site.webmanifest">
+  <link rel="apple-touch-icon" href="icon.png">
+  <!-- Place favicon.ico in the root directory -->
+
+  <link rel="stylesheet" href="css/normalize.css">
+
+  <!-- CSS only -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+
+  <script src="https://unpkg.com/vue@next"></script>
+  <link rel="stylesheet" href="css/main.css">
+
+  <meta name="theme-color" content="#fafafa">
+</head>
+
+<body>
+  <h3 class="text-center">Inventory System</h3>
+  <div id="counter" class="container">
+    <div class="row">
+      <div class="offset-8 col-4">
+        <input type="search" class=" form-control" placeholder="Search..." v-model="search" @keyup="getProducts()" aria-label="Search">
+      </div>
+    </div>
+    <table class="table table-striped">
+        <thead>
+        <tr>
+          <th scope="col">Core Number</th>
+          <th scope="col">Internal Title</th>
+          <th scope="col">Moq Pieces</th>
+          <th scope="col">Active</th>
+          <th scope="col">Action</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr  v-for="(product, index) in products" :key="index">
+          <th scope="row">{{product.core_number}}</th>
+          <td>{{product.internal_title}}</td>
+          <td>{{product.moq_pieces}}</td>
+          <td>{{product.active}}</td>
+          <td class="d-flex justify-content-around" >
+            <span  @click="editProduct(product.id)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-pencil-square" viewBox="0 0 16 16">
+            <path d="M15.502 1.94a.5.5 0 0 1 0 .706L14.459 3.69l-2-2L13.502.646a.5.5 0 0 1 .707 0l1.293 1.293zm-1.75 2.456-2-2L4.939 9.21a.5.5 0 0 0-.121.196l-.805 2.414a.25.25 0 0 0 .316.316l2.414-.805a.5.5 0 0 0 .196-.12l6.813-6.814z"/>
+            <path fill-rule="evenodd" d="M1 13.5A1.5 1.5 0 0 0 2.5 15h11a1.5 1.5 0 0 0 1.5-1.5v-6a.5.5 0 0 0-1 0v6a.5.5 0 0 1-.5.5h-11a.5.5 0 0 1-.5-.5v-11a.5.5 0 0 1 .5-.5H9a.5.5 0 0 0 0-1H2.5A1.5 1.5 0 0 0 1 2.5v11z"/>
+          </svg></span>
+            <span  @click="viewProduct(product.id)"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-eye-fill" viewBox="0 0 16 16">
+  <path d="M10.5 8a2.5 2.5 0 1 1-5 0 2.5 2.5 0 0 1 5 0z"/>
+  <path d="M0 8s3-5.5 8-5.5S16 8 16 8s-3 5.5-8 5.5S0 8 0 8zm8 3.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7z"/>
+</svg></span>
+          </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <nav aria-label="Page navigation example" >
+      <ul class="pagination justify-content-center">
+        <li v-if="prev != null" @click.prevent="getProducts(prev)" class="page-item"><a class="page-link" href="#">Previous</a></li>
+        <li @click.prevent="getProducts(page.url)" :class="page.active ? 'page-item active' : 'page-item'" v-for="(page, index) in pagination" :key="index">
+          <a  class="page-link" href="#"  >{{page.label}}</a>
+        </li>
+        <li v-if="next != null" @click.prevent="getProducts(next)" class="page-item"><a class="page-link" href="#">Next</a></li>
+      </ul>
+    </nav>
+
+<!--    Edit product uantity modal-->
+    <div class="modal fade" id="edit" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel">Update the Quantity for {{product.core_number}}({{product.internal_title}})</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="mb-3">
+              <select class="form-control mb-2" v-model="form.location_id">
+                <option value="0"> Select a location</option>
+                <option v-for="(location, index) in product.locations" :key="index" :value="location.id">{{location.location}}</option>
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Enter quantity</label>
+              <input class=" form-control" type="number" placeholder="Enter quantity..." v-model="form.quantity">
+              <p style="color: red; font-size: 11px" class="mt-1" v-if="shouldEdit">Inventory Quantity cannot drop below 0</p>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            <button @click="updateProduct()" type="button" :disabled="form.quantity == 0 || form.location_id == 0 || shouldEdit" class="btn btn-primary">Save changes</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!--View product details modal-->
+    <div class=" modal fade "  id="view" tabindex="-1" aria-labelledby="viewLabel" aria-hidden="true">
+      <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="viewLabel" >{{inventory.core_number}}({{inventory.internal_title}})</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body ">
+            <div class="container">
+              <div class="row mb-4">
+                <div class="col-md-4">
+                  <span class="title">Restockable : </span>
+                  <span>{{inventory.restockable}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Moq (Pieces) : </span>
+                  <span>{{inventory.moq_pieces}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Buffer Days : </span>
+                  <span>{{inventory.buffer_days}} </span>
+                </div>
+              </div>
+              <div class="row mb-4">
+                <div class="col-md-4">
+                  <span class="title">Case Pack (Pieces) : </span>
+                  <span>{{inventory.case_pack_pieces}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Pieces Per Internal Box : </span>
+                  <span>{{inventory.pieces_per_internal_box}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Minimum Level : </span>
+                  <span>{{inventory.minimum_level}} </span>
+                </div>
+              </div>
+              <div class="row mb-4">
+                <div class="col-md-4">
+                  <span class="title">Boxes per Case : </span>
+                  <span>{{inventory.boxes_per_case}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title"> Hazmat : </span>
+                  <span>{{inventory.case_pack_pieces}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title"> Active : </span>
+                  <span>{{inventory.active}} </span>
+                </div>
+              </div>
+              <div class="row mb-4" >
+                <div class="col-md-4">
+                  <span class="title">Product URL : </span>
+                  <span>{{inventory.product_url}} </span>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Ignore Until : </span>
+                  <span>{{inventory.ignore_until}} </span>
+                </div>
+              </div>
+
+              <div class="row mb-4">
+                <div class="col-md-4">
+                  <span class="title">Note for the Next Order : </span>
+                  <p>{{inventory.note_for_the_next_order}} </p>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Tags & Info : </span>
+                  <p>{{inventory.tags_info}} </p>
+                </div>
+                <div class="col-md-4">
+                  <span class="title">Notes : </span>
+                  <p>{{inventory.notes}} </p>
+                </div>
+              </div>
+              <div id="vendors" class="mt-2 pt-2">
+                <h5>Vendors :</h5>
+                <table class="table table-striped">
+                  <thead>
+                  <tr>
+                    <th scope="col">Vendor</th>
+                    <th scope="col">Vendor Sku</th>
+                    <th scope="col">Vendor Title</th>
+                    <th scope="col">Vendor Case Pack</th>
+                    <th scope="col">Vendor Order Unit</th>
+                  </tr>
+                  </thead>
+                  <tbody>
+                    <tr  v-for="(vendor, index) in inventory.vendors" :key="index">
+                      <td >{{vendor.vendor}} {{vendor.pivot.backup ? '(Backup)' : ''}}</td>
+                      <td>{{vendor.pivot.vendor_sku}}</td>
+                      <td>{{vendor.pivot.vendors_title}}</td>
+                      <td>{{vendor.pivot.vendor_case_pack}}</td>
+                      <td>{{vendor.pivot.vendor_order_unit}}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="tags" class="mb-2 pb-2">
+                <h5>Tags :</h5>
+                <span v-for="(tag, index) in inventory.tags" class="badge rounded-pill bg-secondary">{{tag.tag}}</span>
+              </div>
+              <div id="locations" class="mt-2 pt-2">
+              <h5>Locations :</h5>
+              <table class="table table-striped">
+                <thead>
+                <tr>
+                  <th class="text-center" scope="col">Location</th>
+                  <th class="text-center" scope="col">Warehouse</th>
+                  <th class="text-center" scope="col">Quantity</th>
+                </tr>
+                </thead>
+                <tbody>
+
+<!--                <tr v-show="inventory.locations.length">There are no locations for this item</tr>-->
+                <tr v-for="(location, index) in inventory.locations" :key="index">
+                  <td class="text-center" >{{location.location}}</td>
+                  <td class="text-center">{{location.warehouse.warehouse}}</td>
+                  <td class="text-center">{{location.pivot.quantity.toLocaleString()}}</td>
+                </tr>
+                <tr>
+                  <td></td>
+                  <th scope="row" class="text-center">Total :</th>
+                  <td class="text-center">{{getTotalAmount(inventory.locations).toLocaleString()}}</td>
+                </tr>
+                </tbody>
+              </table>
+                <span></span>
+            </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <script src="js/main.js"></script>
+  <script src="js/vendor/jquery-3.6.0.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js" integrity="sha384-p34f1UUtsS3wqzfto5wAAmdvj+osOnFyQFpp4Ua3gs/ZVWx6oOypYoCJhGGScy+8" crossorigin="anonymous"></script>
+</body>
+</html>
